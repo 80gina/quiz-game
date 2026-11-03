@@ -19,6 +19,17 @@ class Quiz:
         return choice == self.answer
 
 
+def default_quizzes() -> list[Quiz]:
+    # TODO: 본인의 업무 지식으로 문제를 바꾸거나 늘려 보세요.
+    return [
+        Quiz("숲의 가장 위층(상층)을 이루는 식물층은?", ["교목층", "관목층", "초본층", "지피층"], 1),
+        Quiz("수질 오염 지표로 쓰는 BOD는 무엇의 약자인가?", ["생물화학적 산소요구량", "화학적 산소요구량", "총인", "부유물질"], 1),
+        Quiz("환경영향평가에서 법정보호종에 해당하는 것은?", ["멸종위기 야생생물", "외래종", "흔한 잡초", "가축"], 1),
+        Quiz("하천 수질의 부영양화를 일으키는 대표 영양염류는?", ["질소와 인", "칼슘", "철", "나트륨"], 1),
+        Quiz("광합성에서 식물이 흡수하는 기체는?", ["이산화탄소", "산소", "질소", "수소"], 1),
+    ]
+
+
 def show_menu() -> None:
     print("=" * 40)
     print("  숲해설·환경교육 퀴즈 게임")
@@ -50,6 +61,8 @@ def read_int(prompt: str, low: int, high: int) -> int | None:
 
 
 def main() -> None:
+    quizzes = default_quizzes()
+    print(f"퀴즈 {len(quizzes)}개를 준비했습니다.")
     while True:
         show_menu()
         choice = read_int("선택: ", 1, 5)
