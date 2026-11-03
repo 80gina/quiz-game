@@ -1,6 +1,24 @@
 """숲해설·환경교육 퀴즈 게임 (Python 3.10+, 표준 라이브러리만 사용)."""
 
 
+class Quiz:
+    """퀴즈 한 문제. answer는 1~4 번호."""
+
+    def __init__(self, question: str, choices: list[str], answer: int):
+        self.question = question
+        self.choices = choices
+        self.answer = answer
+
+    def show(self, number: int | None = None) -> None:
+        title = f"[문제 {number}] " if number else ""
+        print(f"{title}{self.question}")
+        for i, c in enumerate(self.choices, 1):
+            print(f"  {i}. {c}")
+
+    def is_correct(self, choice: int) -> bool:
+        return choice == self.answer
+
+
 def show_menu() -> None:
     print("=" * 40)
     print("  숲해설·환경교육 퀴즈 게임")
