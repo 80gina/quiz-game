@@ -83,6 +83,38 @@ def play_quiz(quizzes: list[Quiz]) -> int | None:
     return score
 
 
+def read_text(prompt: str) -> str | None:
+    """빈 입력이면 다시 묻는다. Ctrl+C·EOF면 None."""
+    while True:
+        try:
+            text = input(prompt).strip()
+        except (KeyboardInterrupt, EOFError):
+            print("\n입력이 중단되었습니다.")
+            return None
+        if text:
+            return text
+        print("빈 입력입니다.")
+
+
+def add_quiz(quizzes: list[Quiz]) -> bool:
+    """퀴즈를 추가한다. 입력이 중단되면 False."""
+    question = read_text("문제: ")
+    if question is None:
+        return False
+    choices = []
+    for i in range(1, 5):
+        text = read_text(f"선택지 {i}: ")
+        if text is None:
+            return False
+        choices.append(text)
+    answer = read_int("정답 번호(1-4): ", 1, 4)
+    if answer is None:
+        return False
+    quizzes.append(Quiz(question, choices, answer))
+    print("퀴즈가 추가되었습니다.")
+    return True
+
+
 def main() -> None:
     quizzes = default_quizzes()
     print(f"퀴즈 {len(quizzes)}개를 준비했습니다.")
@@ -94,6 +126,10 @@ def main() -> None:
             return
         if choice == 1:
             play_quiz(quizzes)
+        elif choice == 2:
+            if not add_quiz(quizzes):
+                print("종료합니다.")
+                return
         else:
             print("아직 준비 중인 기능입니다.")
 
