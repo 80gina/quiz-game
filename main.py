@@ -115,6 +115,15 @@ def add_quiz(quizzes: list[Quiz]) -> bool:
     return True
 
 
+def list_quizzes(quizzes: list[Quiz]) -> None:
+    if not quizzes:
+        print("등록된 퀴즈가 없습니다.")
+        return
+    print(f"등록된 퀴즈 ({len(quizzes)}개)")
+    for i, q in enumerate(quizzes, 1):
+        print(f"[{i}] {q.question}")
+
+
 def main() -> None:
     quizzes = default_quizzes()
     print(f"퀴즈 {len(quizzes)}개를 준비했습니다.")
@@ -130,6 +139,8 @@ def main() -> None:
             if not add_quiz(quizzes):
                 print("종료합니다.")
                 return
+        elif choice == 3:
+            list_quizzes(quizzes)
         else:
             print("아직 준비 중인 기능입니다.")
 
