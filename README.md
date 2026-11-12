@@ -119,12 +119,19 @@ quiz-game/
 | 10 | `7a428f1` Feat: 점수 확인과 최고 점수 갱신 구현 | 점수 |
 | 11 | `cc89c38` Refactor: QuizGame 클래스로 구조 정리 | 클래스 구조 정리 |
 | 12 | `6fba925` Feat: state.json 저장·불러오기와 예외 처리 구현 | 파일 입출력 |
-| 13 | Docs: README 작성 | 이 문서 |
+| 13 | `7631254` Docs: README 작성 | README |
+| 14 | `6ef3e4d` Docs: 실행 화면과 Git 작업 증거 스크린샷 추가 | 증거 이미지 |
+| 15 | `70ed031` Docs: clone 실습용 README 한 줄 추가 | 복제 저장소(`quiz-game-clone`)에서 작성, `pull`로 가져옴 |
+| 16 | Docs: clone·pull 실습 기록 정리 | 이 README의 9장과 증거 이미지 |
 
 ### 브랜치와 병합
-`main`에서 `feature/play-quiz` 브랜치를 만들어 퀴즈 풀기 기능을 개발한 뒤 `git merge --no-ff`로 `main`에 병합했습니다.
+`main`에서 `feature/play-quiz` 브랜치를 만들어 퀴즈 풀기 기능(커밋 5, 6)을 개발한 뒤, `git merge --no-ff`로 `main`에 병합했습니다. 병합 기록이 남도록 `--no-ff`를 사용했습니다.
 
-![병합 그래프](docs/screenshots/S14_merge.png)
+| 단계 | 화면 |
+|---|---|
+| 브랜치 생성과 이동 (`git checkout -b feature/play-quiz`) | ![브랜치 생성](docs/screenshots/S8_branch_create.png) |
+| 병합 **전** `main`에는 퀴즈 풀기가 없음 ("아직 준비 중인 기능입니다.") | ![병합 전](docs/screenshots/S13_main_before_merge.png) |
+| 병합 **후** 갈라졌다 합쳐지는 그래프 | ![병합 그래프](docs/screenshots/S14_merge.png) |
 
 ### 사용한 Git 명령 7종
 | 명령 | 사용한 곳 |
@@ -133,10 +140,45 @@ quiz-game/
 | `add` | 커밋 전 파일 담기 |
 | `commit` | 기능 단위 저장 |
 | `push` | GitHub로 올리기 |
-| `pull` | (clone 실습 후 변경 가져오기, 아래 9장) |
+| `pull` | 복제 저장소에서 올린 변경을 원래 폴더로 가져오기 (9장) |
 | `checkout` | 브랜치 생성과 이동 (`checkout -b feature/play-quiz`, `checkout main`) |
-| `clone` | (복제 실습, 아래 9장) |
+| `clone` | 별도 폴더에 저장소 복제 (9장) |
 
 ## 9. clone / pull 실습
-(실습 후 이 장을 채웁니다.)
+**목표:** `clone`으로 저장소를 별도 폴더에 복제하고, 복제본에서 고쳐 `push`한 변경을 원래 폴더에서 `pull`로 가져와 반영되는지 확인합니다.
+
+| 순서 | 위치 | 명령 | 결과 |
+|---|---|---|---|
+| 1 | `sns/` | `git clone git@github.com:80gina/quiz-game.git quiz-game-clone` | 복제본 폴더 생성, 커밋 14개가 그대로 복사됨 |
+| 2 | `quiz-game-clone/` | README 끝에 한 줄 추가 후 `git add`, `git commit` | 커밋 `70ed031` |
+| 3 | `quiz-game-clone/` | `git push` | `6ef3e4d..70ed031  main -> main` |
+| 4 | `quiz-game/` (원래 폴더) | `git pull` | `Updating 6ef3e4d..70ed031`, `Fast-forward`, `README.md | 1 +` |
+| 5 | `quiz-game/` | `git log --oneline -3`, README 마지막 줄 확인 | 맨 위 커밋과 추가한 한 줄이 반영됨 |
+
+### 1) clone: 복제본 확인
+![clone](docs/screenshots/S34_clone.png)
+
+### 2~3) 복제본에서 수정, 커밋, push
+복제본에서 추가한 한 줄:
+```text
 - clone 실습: 복제 저장소(quiz-game-clone)에서 이 줄을 추가하고 push했습니다.
+```
+![복제본에서 수정과 push](docs/screenshots/S35_clone_edit_push.png)
+
+### 4~5) 원래 폴더에서 pull, 반영 확인
+`pull` 전에는 README가 `(실습 후 이 장을 채웁니다.)`로 끝났고, `pull` 후에는 복제본에서 추가한 줄이 들어왔습니다. 충돌 없이 `Fast-forward`로 가져왔습니다.
+
+![pull 전후](docs/screenshots/S37_pull.png)
+
+### clone과 pull의 차이
+| | clone | pull |
+|---|---|---|
+| 하는 일 | 저장소 **전체**를 새 폴더에 복사 | 이미 가진 저장소에 **새로 바뀐 것만** 가져옴 |
+| 쓰는 때 | 처음 시작할 때 한 번 | 그 뒤 매번 |
+
+## 10. 겪은 오류와 해결
+| 오류 | 원인 | 해결 | 화면 |
+|---|---|---|---|
+| `fatal: not a git repository` | 저장소가 아닌 상위 폴더(`sns`)에서 명령을 실행함 | `cd`로 `quiz-game`으로 이동 후 다시 실행 | ![폴더 착오](docs/screenshots/S7_not_a_repo.png) |
+| `fatal: not a git repository` (`git push origin feature/play-quiz`) | 다른 터미널 탭이 상위 폴더에 있었음 | 맨 끝 폴더 이름을 확인하고 이동 | ![폴더 착오 2](docs/screenshots/S18_push_wrong_folder2.png) |
+| 커밋 메시지가 기능과 다름 (`추가`로 적힌 `목록` 커밋) | 이전 커밋 명령을 그대로 반복함 | 올리기 전이라 `git commit --amend -m`으로 메시지만 수정 | (8장의 커밋 표에서 `목록` 커밋 확인) |
