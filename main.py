@@ -60,6 +60,19 @@ def read_int(prompt: str, low: int, high: int) -> int | None:
         return value
 
 
+def play_quiz(quizzes: list[Quiz]) -> None:
+    for i, quiz in enumerate(quizzes, 1):
+        print("-" * 40)
+        quiz.show(i)
+        choice = read_int("정답 번호: ", 1, 4)
+        if choice is None:
+            return
+        if quiz.is_correct(choice):
+            print("정답입니다!")
+        else:
+            print(f"오답입니다. 정답은 {quiz.answer}번입니다.")
+
+
 def main() -> None:
     quizzes = default_quizzes()
     print(f"퀴즈 {len(quizzes)}개를 준비했습니다.")
@@ -69,7 +82,10 @@ def main() -> None:
         if choice is None or choice == 5:
             print("종료합니다.")
             return
-        print("아직 준비 중인 기능입니다.")
+        if choice == 1:
+            play_quiz(quizzes)
+        else:
+            print("아직 준비 중인 기능입니다.")
 
 
 if __name__ == "__main__":
