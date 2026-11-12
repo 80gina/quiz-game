@@ -124,8 +124,16 @@ def list_quizzes(quizzes: list[Quiz]) -> None:
         print(f"[{i}] {q.question}")
 
 
+def show_score(best_score: int | None, total: int) -> None:
+    if best_score is None:
+        print("아직 퀴즈를 풀지 않았습니다.")
+    else:
+        print(f"최고 점수: {best_score}/{total}")
+
+
 def main() -> None:
     quizzes = default_quizzes()
+    best_score = None
     print(f"퀴즈 {len(quizzes)}개를 준비했습니다.")
     while True:
         show_menu()
@@ -134,13 +142,18 @@ def main() -> None:
             print("종료합니다.")
             return
         if choice == 1:
-            play_quiz(quizzes)
+            score = play_quiz(quizzes)
+            if score is not None and (best_score is None or score > best_score):
+                best_score = score
+                print("최고 점수를 갱신했습니다!")
         elif choice == 2:
             if not add_quiz(quizzes):
                 print("종료합니다.")
                 return
         elif choice == 3:
             list_quizzes(quizzes)
+        elif choice == 4:
+            show_score(best_score, len(quizzes))
         else:
             print("아직 준비 중인 기능입니다.")
 
