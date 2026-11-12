@@ -29,6 +29,7 @@ Windows에서 `python`이 안 되면 `py main.py`를 사용합니다. 메뉴에�
 | 3 | 퀴즈 목록 | 등록된 퀴즈의 문제를 번호와 함께 보여 줍니다. 퀴즈가 없으면 안내합니다. |
 | 4 | 점수 확인 | 최고 점수를 보여 줍니다. 퀴즈를 풀 때마다 최고 점수와 비교해 갱신합니다. 안 풀었으면 안내합니다. |
 | 5 | 종료 | 저장하고 종료합니다. |
+| 6 | AI 패턴 퀴즈 | 그림(5×5, 13×13)을 보고 Cross(십자가)/X를 맞히면, AI(MAC 연산)가 계산한 점수를 함께 보여 줍니다. (3번 미션 연결, 12장) |
 
 ### 입력과 오류 처리
 | 상황 | 처리 |
@@ -44,7 +45,9 @@ Windows에서 `python`이 안 되면 `py main.py`를 사용합니다. 메뉴에�
 ## 5. 파일 구조
 ```
 quiz-game/
-├── main.py        # Quiz, QuizGame 클래스와 실행 코드
+├── main.py        # Quiz, PatternQuiz, QuizGame 클래스와 실행 코드
+├── npu_core.py    # MAC 연산, 라벨 정규화, 허용오차 비교, 패턴 생성 (3번 미션 로직)
+├── data.json      # AI 패턴 퀴즈용 필터와 패턴 (3번 미션과 같은 형식)
 ├── state.json     # 퀴즈와 최고 점수 (프로그램이 자동 생성·갱신, 저장소에는 올리지 않음)
 ├── .gitignore     # 파이썬 임시 파일 무시
 ├── README.md      # 이 문서
@@ -57,7 +60,9 @@ quiz-game/
 |---|---|---|
 | `Quiz` | 클래스 | 속성 `question`, `choices`, `answer`. 메서드 `show()`, `is_correct()`, `to_dict()`, `from_dict()` |
 | `default_quizzes()` | 함수 | 기본 퀴즈 5개를 `Quiz` 인스턴스로 만들어 돌려줍니다. |
-| `QuizGame` | 클래스 | 속성 `quizzes`, `best_score`. 메서드 `show_menu`, `play`, `add_quiz`, `list_quizzes`, `show_score`, `load`, `save`, `run`, 입력 도우미 `read_line`, `read_int` |
+| `PatternQuiz` | 클래스 | `Quiz`를 이어받은 그림 퀴즈. 그림을 보여 주는 `show()`를 바꿔 쓰고, `explain()`으로 MAC 점수를 설명 |
+| `QuizGame` | 클래스 | 속성 `quizzes`, `best_score`. 메서드 `show_menu`, `play`, `play_pattern_quiz`, `add_quiz`, `list_quizzes`, `show_score`, `load`, `save`, `run`, 입력 도우미 `read_line`, `read_int` |
+| `load_pattern_quizzes()` | 함수 | `data.json`을 읽어 `PatternQuiz` 목록을 만듦 (크기 불일치·라벨 오류는 건너뜀) |
 
 ## 6. 데이터 파일 설명 (`state.json`)
 | 항목 | 내용 |
@@ -124,8 +129,14 @@ quiz-game/
 | 15 | `70ed031` Docs: clone 실습용 README 한 줄 추가 | 복제 저장소(`quiz-game-clone`)에서 작성, `pull`로 가져옴 |
 | 16 | `c32846c` Docs: clone·pull 실습 기록과 Git 작업 기록 정리 | README 8~10장 |
 | 17 | `49c4afa` Docs: clone·pull 실습 증거 스크린샷 추가 | 증거 이미지 |
-| 18 | Docs: 개발 환경 설정과 제출 증빙 정리 | 이 README의 11장 |
-| 19 | Docs: 개발 환경 설정과 최종 커밋 그래프 증빙 추가 | 증거 이미지 (`S40`, `S41`) |
+| 18 | `c0b5b62` Docs: 개발 환경 설정과 제출 증빙 정리 | README 11장 |
+| 19 | `faa47a0` Docs: 개발 환경 설정과 최종 커밋 그래프 증빙 추가 | 증거 이미지 (`S40`, `S41`) |
+| 20 | `fd06eb4` Feat: NPU 핵심 연산 모듈 추가 | (브랜치 `feature/npu-quiz`) `npu_core.py` |
+| 21 | `7ce1760` Feat: PatternQuiz와 AI 패턴 퀴즈 메뉴 추가 | (브랜치 `feature/npu-quiz`) |
+| 22 | `9d2a1f5` Feat: data.json에서 패턴 불러오기 | (브랜치 `feature/npu-quiz`) 3번 미션 데이터 형식 공유 |
+| 23 | Docs: 3번 미션 연결 설명 추가 | (브랜치 `feature/npu-quiz`) 이 README의 12장 |
+| 24 | Docs: 3번 미션 연결 증거 스크린샷 추가 | (브랜치 `feature/npu-quiz`) 증거 이미지 |
+| 25 | Merge: AI 패턴 퀴즈(3번 미션 연결) 병합 | `main`에 두 번째 병합 |
 
 ### 브랜치와 병합
 `main`에서 `feature/play-quiz` 브랜치를 만들어 퀴즈 풀기 기능(커밋 5, 6)을 개발한 뒤, `git merge --no-ff`로 `main`에 병합했습니다. 병합 기록이 남도록 `--no-ff`를 사용했습니다.
@@ -220,3 +231,47 @@ quiz-game/
 | 개발 환경 설정 스크린샷 (Python 버전, Git 설정) | 11장 `S40` |
 | 프로그램 실행 결과 스크린샷 (추가, 목록, 플레이, 점수) | 7장 (`S19`, `S21`, `S9`, `S11`, `S23`) |
 | `git log --oneline --graph` 출력 | 11장 `S41` |
+
+## 12. 3번 미션 연결: AI 패턴 퀴즈
+3번 미션(Mini NPU 시뮬레이터)에서 배운 **MAC 연산**을 이 퀴즈 게임 안에서 직접 체험하도록, 메뉴 `6. AI 패턴 퀴즈`를 만들었습니다. 브랜치 `feature/npu-quiz`에서 개발해 `main`에 병합했습니다.
+
+### 어떤 기능인가요?
+그림(■ = 1, □ = 0)을 보고 **Cross(십자가)인지 X인지** 맞히면, 이어서 **AI(MAC 연산)가 어떻게 계산해서 판정했는지**를 점수로 보여 줍니다. 마지막에는 **내 점수와 AI 점수**를 비교합니다.
+```text
+[패턴 문제 1] 이 그림은 Cross(십자가)일까요, X일까요?
+□□■□□
+□□■□□
+■■■■■
+□□■□□
+□□■□□
+  1. Cross (십자가)
+  2. X
+정답 번호(1~2): 1
+--- AI(MAC)는 이렇게 계산했어요 ---
+Cross 필터 점수: 9.0
+X 필터 점수: 1.0
+→ 점수가 더 큰 Cross로 판정!
+```
+| 개념 | 설명 |
+|---|---|
+| **MAC** | 패턴과 필터를 같은 위치끼리 **곱하고 모두 더한** 값 (`npu_core.mac`, 반복문으로 직접 구현) |
+| **필터** | 십자가 모양과 X 모양을 숫자 판으로 만들어 둔 기준 |
+| **판정** | 두 점수 중 큰 쪽. 차이가 `1e-9`보다 작으면 판정 불가(`UNDECIDED`) |
+
+### 3번 미션과 연결한 점
+| 연결 | 내용 |
+|---|---|
+| **같은 로직** | `npu_core.py`의 `mac`, `normalize_label`, `judge`(허용오차 비교)는 3번 미션의 규칙과 같습니다. 3번 미션 문서의 예시 값(십자가·십자가 필터 = 5, 십자가·X 필터 = 1)과 일치함을 확인했습니다. |
+| **같은 데이터 형식** | `data.json`은 3번 미션과 같은 구조(`filters`의 `size_N`, `patterns`의 `size_N_idx` + `input` + `expected`)입니다. `expected`의 `+`, `x`는 표준 라벨(`Cross`, `X`)로 정규화합니다. |
+| **상속** | `PatternQuiz`가 `Quiz`를 이어받아 `question`, `choices`, `answer`, `is_correct()`를 그대로 쓰고, 그림을 보여 주는 `show()`만 바꿔 씁니다. |
+| **오류에도 안 멈춤** | `data.json`의 크기 불일치·라벨 오류는 `(건너뜀)`으로 안내하고 계속 진행하며, 파일이 없거나 깨지면 그림을 직접 만들어 진행합니다. |
+
+### 2번 미션 요구와의 관계
+2번 미션의 필수 요구(4지선다 퀴즈, `state.json`의 `quizzes`/`best_score` 형식, 입력 처리, Git 요구)는 **그대로 유지**하고, 패턴 퀴즈는 **추가 기능**으로 만들었습니다. 패턴 퀴즈의 점수는 `state.json`에 저장하지 않습니다.
+
+### 실행 결과
+| 화면 | 설명 |
+|---|---|
+| ![npu_core 실행과 커밋](docs/screenshots/N2_npu_core_run_commit.png) | `npu_core.py`의 MAC 결과(`5.0`)와 십자가 그림, 커밋 |
+| ![패턴 퀴즈 실행과 커밋](docs/screenshots/N4_pattern_quiz_commit.png) | AI 패턴 퀴즈 실행(내 점수와 AI 점수 비교)과 커밋 |
+| ![패턴 퀴즈](docs/screenshots/N6_pattern_quiz_play.png) | `data.json`의 패턴으로 출제, 13×13 그림과 흐트러진 그림도 AI가 판정 |
