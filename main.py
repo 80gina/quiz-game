@@ -1,6 +1,9 @@
 """숲해설·환경교육 퀴즈 게임 (Python 3.10+, 표준 라이브러리만 사용)."""
 import json
 import os
+import random
+
+from npu_core import judge, make_cross, make_x, mac, normalize_label, render
 
 STATE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "state.json")
 
@@ -32,6 +35,65 @@ class Quiz:
         if len(choices) != 4 or answer not in (1, 2, 3, 4):
             raise ValueError("잘못된 퀴즈 형식")
         return Quiz(str(d["question"]), [str(c) for c in choices], answer)
+
+
+class PatternQuiz(Quiz):
+    """그림(2차원 패턴)을 보고 Cross/X를 맞히는 퀴즈. Quiz를 이어받는다."""
+
+    LABELS = ["Cross", "X"]
+
+    def __init__(self, pattern, label, cross_filter=None, x_filter=None):
+        n = len(pattern)
+        self.pattern = pattern
+        self.label = label
+        self.cross_filter = cross_filter or make_cross(n)
+        self.x_filter = x_filter or make_x(n)
+        super().__init__("이 그림은 Cross(십자가)일까요, X일까요?",
+                         ["Cross (십자가)", "X"], self.LABELS.index(label) + 1)
+
+    def show(self, number: int | None = None) -> None:
+        title = f"[패턴 문제 {number}] " if number else ""
+        print(f"{title}{self.question}")
+        print(render(self.pattern))
+        for i, c in enumerate(self.choices, 1):
+            print(f"  {i}. {c}")
+
+    def explain(self) -> str:
+        """MAC 점수를 보여 주고 AI의 판정(Cross/X/UNDECIDED)을 돌려준다."""
+        cross_score = mac(self.pattern, self.cross_filter)
+        x_score = mac(self.pattern, self.x_filter)
+        verdict = judge(cross_score, x_score)
+        print("--- AI(MAC)는 이렇게 계산했어요 ---")
+        print(f"Cross 필터 점수: {cross_score}")
+        print(f"X 필터 점수: {x_score}")
+        if verdict == "UNDECIDED":
+            print("→ 점수 차이가 허용오차(1e-9)보다 작아 판정 불가(UNDECIDED)")
+        else:
+            print(f"→ 점수가 더 큰 {verdict}로 판정!")
+        return verdict
+
+
+def make_noisy(pattern: list[list[int]], rng: random.Random, flips: int = 1) -> list[list[int]]:
+    """패턴의 칸을 몇 개 뒤집어서 살짝 흐트러뜨린다."""
+    n = len(pattern)
+    noisy = [row[:] for row in pattern]
+    for _ in range(flips):
+        i, j = rng.randrange(n), rng.randrange(n)
+        noisy[i][j] = 1 - noisy[i][j]
+    return noisy
+
+
+def build_pattern_quizzes(rng: random.Random | None = None, count: int = 4, size: int = 5) -> list[PatternQuiz]:
+    """Cross와 X를 반반 섞어 패턴 퀴즈를 만든다. (일부는 칸을 1개 뒤집어 흐트러뜨린다.)"""
+    rng = rng or random.Random()
+    labels = (["Cross", "X"] * count)[:count]
+    rng.shuffle(labels)
+    quizzes = []
+    for k, label in enumerate(labels):
+        base = make_cross(size) if label == "Cross" else make_x(size)
+        pattern = make_noisy(base, rng) if k % 2 == 1 else base
+        quizzes.append(PatternQuiz(pattern, label))
+    return quizzes
 
 
 def default_quizzes() -> list[Quiz]:
@@ -107,6 +169,7 @@ class QuizGame:
         print("  숲해설·환경교육 퀴즈 게임")
         print("=" * 40)
         print("1. 퀴즈 풀기\n2. 퀴즈 추가\n3. 퀴즈 목록\n4. 점수 확인\n5. 종료")
+        print("6. AI 패턴 퀴즈 (3번 미션: MAC 연산 체험)")
         print("=" * 40)
 
     def play(self) -> bool:
@@ -175,15 +238,39 @@ class QuizGame:
         else:
             print(f"최고 점수: {self.best_score}/{len(self.quizzes)}")
 
+
+    def play_pattern_quiz(self) -> bool:
+        """AI 패턴 퀴즈: 그림을 맞히고, AI(MAC 연산)가 어떻게 판정했는지 비교한다."""
+        quizzes = build_pattern_quizzes()
+        print(f"AI 패턴 퀴즈를 시작합니다! (총 {len(quizzes)}문제)")
+        mine = ai = 0
+        for i, quiz in enumerate(quizzes, 1):
+            print("-" * 40)
+            quiz.show(i)
+            choice = self.read_int("정답 번호(1~2): ", 1, 2)
+            if choice is None:
+                return False
+            verdict = quiz.explain()
+            if quiz.is_correct(choice):
+                print("정답입니다!")
+                mine += 1
+            else:
+                print(f"오답입니다. 정답은 {quiz.answer}번({quiz.label})입니다.")
+            if verdict == quiz.label:
+                ai += 1
+        print("=" * 40)
+        print(f"내 점수: {mine}/{len(quizzes)}  |  AI(MAC) 점수: {ai}/{len(quizzes)}")
+        return True
+
     def run(self) -> None:
         while True:
             self.show_menu()
-            choice = self.read_int("선택: ", 1, 5)
+            choice = self.read_int("선택: ", 1, 6)
             if choice is None or choice == 5:
                 self.save()
                 print("종료합니다.")
                 return
-            actions = {1: self.play, 2: self.add_quiz}
+            actions = {1: self.play, 2: self.add_quiz, 6: self.play_pattern_quiz}
             if choice in actions:
                 if not actions[choice]():
                     self.save()
