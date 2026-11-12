@@ -139,3 +139,4 @@ quiz-game/
 
 ## 9. clone / pull 실습
 (실습 후 이 장을 채웁니다.)
+- clone 실습: 복제 저장소(quiz-game-clone)에서 이 줄을 추가하고 push했습니다.
