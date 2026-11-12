@@ -122,7 +122,10 @@ quiz-game/
 | 13 | `7631254` Docs: README 작성 | README |
 | 14 | `6ef3e4d` Docs: 실행 화면과 Git 작업 증거 스크린샷 추가 | 증거 이미지 |
 | 15 | `70ed031` Docs: clone 실습용 README 한 줄 추가 | 복제 저장소(`quiz-game-clone`)에서 작성, `pull`로 가져옴 |
-| 16 | Docs: clone·pull 실습 기록 정리 | 이 README의 9장과 증거 이미지 |
+| 16 | `c32846c` Docs: clone·pull 실습 기록과 Git 작업 기록 정리 | README 8~10장 |
+| 17 | `49c4afa` Docs: clone·pull 실습 증거 스크린샷 추가 | 증거 이미지 |
+| 18 | Docs: 개발 환경 설정과 제출 증빙 정리 | 이 README의 11장 |
+| 19 | Docs: 개발 환경 설정과 최종 커밋 그래프 증빙 추가 | 증거 이미지 (`S40`, `S41`) |
 
 ### 브랜치와 병합
 `main`에서 `feature/play-quiz` 브랜치를 만들어 퀴즈 풀기 기능(커밋 5, 6)을 개발한 뒤, `git merge --no-ff`로 `main`에 병합했습니다. 병합 기록이 남도록 `--no-ff`를 사용했습니다.
@@ -182,3 +185,38 @@ quiz-game/
 | `fatal: not a git repository` | 저장소가 아닌 상위 폴더(`sns`)에서 명령을 실행함 | `cd`로 `quiz-game`으로 이동 후 다시 실행 | ![폴더 착오](docs/screenshots/S7_not_a_repo.png) |
 | `fatal: not a git repository` (`git push origin feature/play-quiz`) | 다른 터미널 탭이 상위 폴더에 있었음 | 맨 끝 폴더 이름을 확인하고 이동 | ![폴더 착오 2](docs/screenshots/S18_push_wrong_folder2.png) |
 | 커밋 메시지가 기능과 다름 (`추가`로 적힌 `목록` 커밋) | 이전 커밋 명령을 그대로 반복함 | 올리기 전이라 `git commit --amend -m`으로 메시지만 수정 | (8장의 커밋 표에서 `목록` 커밋 확인) |
+
+## 11. 개발 환경과 제출 증빙
+### 개발 환경
+| 항목 | 내용 | 과제 요구 |
+|---|---|---|
+| OS / 셸 | Windows 11 / PowerShell | - |
+| Python | **3.14.7** | 3.10 이상 ✅ |
+| Git | 2.53.0.windows.3 | - |
+| 편집기 | VSCode | - |
+| 외부 라이브러리 | 없음 (표준 라이브러리 `json`, `os`만 사용) | 외부 라이브러리 금지 ✅ |
+
+### Git 설정
+| 항목 | 값 |
+|---|---|
+| `user.name` | 설정함 |
+| `init.defaultBranch` | `main` |
+| `remote.origin.url` | `git@github.com:80gina/quiz-game.git` (SSH) |
+| `branch.main` | `origin`의 `main`을 추적 |
+
+이메일은 공개 저장소에 노출되지 않도록 `git config --list | Select-String -NotMatch "user.email"`로 **이메일 줄을 제외하고** 출력했습니다. (`init.defaultbranch`가 `master`와 `main`으로 두 번 보이는 것은 시스템 기본값 뒤에 내 설정(`main`)이 덮어써서 `main`이 적용되기 때문입니다.)
+
+![개발 환경 설정](docs/screenshots/S40_dev_env.png)
+
+### 최종 커밋 그래프 (`git log --oneline --graph`)
+커밋이 순서대로 쌓여 있고, `feature/play-quiz` 브랜치가 갈라졌다가 `Merge` 커밋으로 `main`에 합쳐진 것을 볼 수 있습니다.
+
+![최종 커밋 그래프](docs/screenshots/S41_final_graph.png)
+
+### 제출물 확인
+| 제출물 | 위치 |
+|---|---|
+| GitHub 저장소 URL | https://github.com/80gina/quiz-game |
+| 개발 환경 설정 스크린샷 (Python 버전, Git 설정) | 11장 `S40` |
+| 프로그램 실행 결과 스크린샷 (추가, 목록, 플레이, 점수) | 7장 (`S19`, `S21`, `S9`, `S11`, `S23`) |
+| `git log --oneline --graph` 출력 | 11장 `S41` |
