@@ -106,6 +106,43 @@ def default_quizzes() -> list[Quiz]:
         Quiz("광합성에서 식물이 흡수하는 기체는?", ["이산화탄소", "산소", "질소", "수소"], 1),
     ]
 
+DATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data.json")
+
+
+def load_pattern_quizzes(path: str = DATA_FILE, max_size: int = 13) -> tuple[list["PatternQuiz"], list[str]]:
+    """3번 미션과 같은 형식의 data.json에서 패턴 퀴즈를 만든다. (문제 목록, 건너뛴 이유 목록)"""
+    skipped: list[str] = []
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        raw_filters = data["filters"]
+        raw_patterns = data["patterns"]
+    except (OSError, json.JSONDecodeError, KeyError, TypeError):
+        return [], ["data.json을 읽을 수 없어요"]
+
+    filters: dict[str, dict[str, list]] = {}
+    for key, value in raw_filters.items():
+        labeled = {normalize_label(k): v for k, v in value.items()}
+        if "Cross" in labeled and "X" in labeled:
+            filters[key.replace("size_", "")] = labeled
+
+    quizzes = []
+    for name, case in raw_patterns.items():
+        try:
+            size = name.split("_")[1]
+            pattern = case["input"]
+            label = normalize_label(case["expected"])
+            flt = filters[size]
+            n = int(size)
+            if label is None:
+                raise ValueError("알 수 없는 라벨")
+            if len(pattern) != n or any(len(row) != n for row in pattern) or n > max_size:
+                raise ValueError("크기 불일치 또는 너무 큼")
+            quizzes.append(PatternQuiz(pattern, label, flt["Cross"], flt["X"]))
+        except (IndexError, KeyError, ValueError, TypeError) as e:
+            skipped.append(f"{name}: {e}")
+    return quizzes, skipped
+
 
 class QuizGame:
     def __init__(self):
@@ -239,9 +276,17 @@ class QuizGame:
             print(f"최고 점수: {self.best_score}/{len(self.quizzes)}")
 
 
-    def play_pattern_quiz(self) -> bool:
-        """AI 패턴 퀴즈: 그림을 맞히고, AI(MAC 연산)가 어떻게 판정했는지 비교한다."""
-        quizzes = build_pattern_quizzes()
+    def play_pattern_quiz(self, rounds: int = 4) -> bool:
+        """AI 패턴 퀴즈: data.json의 패턴으로 출제하고, AI(MAC 연산)의 판정과 비교한다."""
+        pool, skipped = load_pattern_quizzes()
+        for reason in skipped:
+            print(f"(건너뜀) {reason}")
+        if pool:
+            quizzes = random.sample(pool, min(rounds, len(pool)))
+            print(f"(data.json의 패턴 {len(pool)}개 중 {len(quizzes)}개를 골랐어요)")
+        else:
+            print("(data.json이 없어서 패턴을 직접 만들어요)")
+            quizzes = build_pattern_quizzes(count=rounds)
         print(f"AI 패턴 퀴즈를 시작합니다! (총 {len(quizzes)}문제)")
         mine = ai = 0
         for i, quiz in enumerate(quizzes, 1):
