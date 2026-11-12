@@ -1,4 +1,8 @@
 """숲해설·환경교육 퀴즈 게임 (Python 3.10+, 표준 라이브러리만 사용)."""
+import json
+import os
+
+STATE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "state.json")
 
 
 class Quiz:
@@ -18,6 +22,17 @@ class Quiz:
     def is_correct(self, choice: int) -> bool:
         return choice == self.answer
 
+    def to_dict(self) -> dict:
+        return {"question": self.question, "choices": self.choices, "answer": self.answer}
+
+    @staticmethod
+    def from_dict(d: dict) -> "Quiz":
+        choices = d["choices"]
+        answer = d["answer"]
+        if len(choices) != 4 or answer not in (1, 2, 3, 4):
+            raise ValueError("잘못된 퀴즈 형식")
+        return Quiz(str(d["question"]), [str(c) for c in choices], answer)
+
 
 def default_quizzes() -> list[Quiz]:
     # TODO: 본인의 업무 지식으로 문제를 바꾸거나 늘려 보세요.
@@ -32,8 +47,9 @@ def default_quizzes() -> list[Quiz]:
 
 class QuizGame:
     def __init__(self):
-        self.quizzes = default_quizzes()
+        self.quizzes: list[Quiz] = []
         self.best_score: int | None = None
+        self.load()
 
     # ---------- 입력 ----------
     def read_line(self, prompt: str) -> str | None:
@@ -61,6 +77,29 @@ class QuizGame:
                 print(f"{low}~{high} 사이의 숫자를 입력하세요.")
                 continue
             return value
+
+    # ---------- 저장/불러오기 ----------
+    def load(self) -> None:
+        try:
+            with open(STATE_FILE, encoding="utf-8") as f:
+                data = json.load(f)
+            self.quizzes = [Quiz.from_dict(q) for q in data["quizzes"]]
+            self.best_score = data.get("best_score")
+        except FileNotFoundError:
+            self.quizzes = default_quizzes()
+        except (json.JSONDecodeError, KeyError, TypeError, ValueError, OSError):
+            print("데이터 파일이 손상되어 기본 퀴즈로 복구합니다.")
+            self.quizzes = default_quizzes()
+            self.best_score = None
+            self.save()
+
+    def save(self) -> None:
+        data = {"quizzes": [q.to_dict() for q in self.quizzes], "best_score": self.best_score}
+        try:
+            with open(STATE_FILE, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+        except OSError as e:
+            print(f"저장 실패: {e}")
 
     # ---------- 기능 ----------
     def show_menu(self) -> None:
@@ -92,6 +131,7 @@ class QuizGame:
         if self.best_score is None or score > self.best_score:
             self.best_score = score
             print("최고 점수를 갱신했습니다!")
+        self.save()
         return True
 
     def add_quiz(self) -> bool:
@@ -117,6 +157,7 @@ class QuizGame:
         if answer is None:
             return False
         self.quizzes.append(Quiz(question, choices, answer))
+        self.save()
         print("퀴즈가 추가되었습니다.")
         return True
 
@@ -139,11 +180,13 @@ class QuizGame:
             self.show_menu()
             choice = self.read_int("선택: ", 1, 5)
             if choice is None or choice == 5:
+                self.save()
                 print("종료합니다.")
                 return
             actions = {1: self.play, 2: self.add_quiz}
             if choice in actions:
                 if not actions[choice]():
+                    self.save()
                     return
             elif choice == 3:
                 self.list_quizzes()
