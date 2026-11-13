@@ -134,9 +134,10 @@ quiz-game/
 | 20 | `fd06eb4` Feat: NPU 핵심 연산 모듈 추가 | (브랜치 `feature/npu-quiz`) `npu_core.py` |
 | 21 | `7ce1760` Feat: PatternQuiz와 AI 패턴 퀴즈 메뉴 추가 | (브랜치 `feature/npu-quiz`) |
 | 22 | `9d2a1f5` Feat: data.json에서 패턴 불러오기 | (브랜치 `feature/npu-quiz`) 3번 미션 데이터 형식 공유 |
-| 23 | Docs: 3번 미션 연결 설명 추가 | (브랜치 `feature/npu-quiz`) 이 README의 12장 |
-| 24 | Docs: 3번 미션 연결 증거 스크린샷 추가 | (브랜치 `feature/npu-quiz`) 증거 이미지 |
-| 25 | Merge: AI 패턴 퀴즈(3번 미션 연결) 병합 | `main`에 두 번째 병합 |
+| 23 | `5158cb5` Docs: 3번 미션 연결 설명 추가 (AI 패턴 퀴즈) | (브랜치 `feature/npu-quiz`) README 12장 |
+| 24 | `f3b2e74` Docs: 3번 미션 연결 증거 스크린샷 추가 | (브랜치 `feature/npu-quiz`) 증거 이미지 |
+| 25 | `0abd8f0` Merge: AI 패턴 퀴즈(3번 미션 연결) 병합 | `main`에 두 번째 병합 |
+| 26 | Docs: 두 번째 병합 증거 추가 | 병합 그래프와 병합 후 메뉴 6번 화면 (`N10`) |
 
 ### 브랜치와 병합
 `main`에서 `feature/play-quiz` 브랜치를 만들어 퀴즈 풀기 기능(커밋 5, 6)을 개발한 뒤, `git merge --no-ff`로 `main`에 병합했습니다. 병합 기록이 남도록 `--no-ff`를 사용했습니다.
@@ -275,3 +276,4 @@ X 필터 점수: 1.0
 | ![npu_core 실행과 커밋](docs/screenshots/N2_npu_core_run_commit.png) | `npu_core.py`의 MAC 결과(`5.0`)와 십자가 그림, 커밋 |
 | ![패턴 퀴즈 실행과 커밋](docs/screenshots/N4_pattern_quiz_commit.png) | AI 패턴 퀴즈 실행(내 점수와 AI 점수 비교)과 커밋 |
 | ![패턴 퀴즈](docs/screenshots/N6_pattern_quiz_play.png) | `data.json`의 패턴으로 출제, 13×13 그림과 흐트러진 그림도 AI가 판정 |
+| ![두 번째 병합](docs/screenshots/N10_merge2.png) | **병합 후** `main`: `git log --graph`에 갈라졌다 합쳐지는 `Merge: AI 패턴 퀴즈(3번 미션 연결) 병합`이 보이고, 메뉴에 `6. AI 패턴 퀴즈`가 나타남 |
