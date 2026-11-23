@@ -2,41 +2,50 @@
 import json
 import os
 import random
+import signal
+import time
 
 from npu_core import judge, make_cross, make_x, mac, normalize_label, render
 
 STATE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "state.json")
 BACKUP_FILE = STATE_FILE + ".bak"   # 손상된 state.json을 지우지 않고 보관하는 곳
+SAVE_RETRIES = 3                    # 저장 실패 시 재시도 최대 횟수
 NUM_CHOICES = 4                     # 선택지 개수 (바뀌면 이 값과 기본 데이터만 확인)
 
 
 class Quiz:
-    """퀴즈 한 문제. answer는 1~4 번호."""
+    """퀴즈 한 문제. answer는 1~4 번호. category는 향후 확장용 분류(선택, 기본 "일반")."""
 
-    def __init__(self, question: str, choices: list[str], answer: int):
+    def __init__(self, question: str, choices: list[str], answer: int, category: str = "일반"):
         self.question = question
         self.choices = choices
         self.answer = answer
+        self.category = category
 
     def show(self, number: int | None = None) -> None:
+        """문제와 선택지를 번호와 함께 출력한다."""
         title = f"[문제 {number}] " if number else ""
         print(f"{title}{self.question}")
         for i, c in enumerate(self.choices, 1):
             print(f"  {i}. {c}")
 
     def is_correct(self, choice: int) -> bool:
+        """입력 번호가 정답 번호와 같으면 True. 입력 범위(1~4) 검증은 QuizGame.read_int가 맡는다."""
         return choice == self.answer
 
     def to_dict(self) -> dict:
-        return {"question": self.question, "choices": self.choices, "answer": self.answer}
+        """state.json에 저장할 딕셔너리로 바꾼다."""
+        return {"question": self.question, "choices": self.choices, "answer": self.answer,
+                "category": self.category}
 
     @staticmethod
     def from_dict(d: dict) -> "Quiz":
+        """딕셔너리에서 Quiz를 만든다. 선택지 개수·정답 범위가 틀리면 ValueError (옛 파일은 category 없어도 됨)."""
         choices = d["choices"]
         answer = d["answer"]
         if len(choices) != NUM_CHOICES or answer not in range(1, NUM_CHOICES + 1):
             raise ValueError("잘못된 퀴즈 형식")
-        return Quiz(str(d["question"]), [str(c) for c in choices], answer)
+        return Quiz(str(d["question"]), [str(c) for c in choices], answer, str(d.get("category", "일반")))
 
 
 class PatternQuiz(Quiz):
@@ -99,13 +108,13 @@ def build_pattern_quizzes(rng: random.Random | None = None, count: int = 4, size
 
 
 def default_quizzes() -> list[Quiz]:
-    # TODO: 본인의 업무 지식으로 문제를 바꾸거나 늘려 보세요.
+    """기본 퀴즈 5개. 세 번째 값은 정답 번호, 마지막 값은 분류(category)."""
     return [
-        Quiz("숲의 가장 위층(상층)을 이루는 식물층은?", ["교목층", "관목층", "초본층", "지피층"], 1),
-        Quiz("수질 오염 지표로 쓰는 BOD는 무엇의 약자인가?", ["생물화학적 산소요구량", "화학적 산소요구량", "총인", "부유물질"], 1),
-        Quiz("환경영향평가에서 법정보호종에 해당하는 것은?", ["멸종위기 야생생물", "외래종", "흔한 잡초", "가축"], 1),
-        Quiz("하천 수질의 부영양화를 일으키는 대표 영양염류는?", ["질소와 인", "칼슘", "철", "나트륨"], 1),
-        Quiz("광합성에서 식물이 흡수하는 기체는?", ["이산화탄소", "산소", "질소", "수소"], 1),
+        Quiz("숲의 가장 위층(상층)을 이루는 식물층은?", ["교목층", "관목층", "초본층", "지피층"], 1, "숲해설"),
+        Quiz("수질 오염 지표로 쓰는 BOD는 무엇의 약자인가?", ["생물화학적 산소요구량", "화학적 산소요구량", "총인", "부유물질"], 1, "수질"),
+        Quiz("환경영향평가에서 법정보호종에 해당하는 것은?", ["멸종위기 야생생물", "외래종", "흔한 잡초", "가축"], 1, "환경영향평가"),
+        Quiz("하천 수질의 부영양화를 일으키는 대표 영양염류는?", ["질소와 인", "칼슘", "철", "나트륨"], 1, "수질"),
+        Quiz("광합성에서 식물이 흡수하는 기체는?", ["이산화탄소", "산소", "질소", "수소"], 1, "숲해설"),
     ]
 
 DATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data.json")
@@ -147,13 +156,15 @@ def load_pattern_quizzes(path: str = DATA_FILE, max_size: int = 13) -> tuple[lis
 
 
 class QuizGame:
+    """게임 전체: 퀴즈 목록과 최고 점수를 갖고, 입력 검증·게임 진행·파일 저장/불러오기를 맡는다."""
+
     def __init__(self):
         self.quizzes: list[Quiz] = []
         self.best_score: int | None = None
         self.load()
 
     # ---------- 입력 ----------
-    def read_line(self, prompt: str) -> str | None:
+    def read_line(self, prompt: str) -> str | None:  # 모든 입력의 관문
         """공백 제거. Ctrl+C·EOF면 None 반환."""
         try:
             return input(prompt).strip()
@@ -181,6 +192,7 @@ class QuizGame:
 
     # ---------- 저장/불러오기 ----------
     def load(self) -> None:
+        """state.json을 읽는다. 없으면 기본 퀴즈, 손상됐으면 .bak로 보관 후 기본 퀴즈로 복구한다."""
         try:
             with open(STATE_FILE, encoding="utf-8") as f:
                 data = json.load(f)
@@ -203,15 +215,21 @@ class QuizGame:
         """임시 파일에 먼저 쓰고 성공하면 교체한다. 쓰는 도중 꺼져도 기존 state.json은 안전하다."""
         data = {"quizzes": [q.to_dict() for q in self.quizzes], "best_score": self.best_score}
         tmp = STATE_FILE + ".tmp"
-        try:
-            with open(tmp, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-            os.replace(tmp, STATE_FILE)
-        except OSError as e:
-            print(f"저장 실패: {e} (폴더 쓰기 권한과 디스크 공간을 확인하세요. 이번 변경은 저장되지 않았습니다.)")
+        for attempt in range(1, SAVE_RETRIES + 1):
+            try:
+                with open(tmp, "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+                os.replace(tmp, STATE_FILE)
+                return
+            except OSError as e:
+                if attempt < SAVE_RETRIES:
+                    time.sleep(0.2)     # 잠깐 쉬었다가 다시 시도 (최대 SAVE_RETRIES번)
+                    continue
+                print(f"저장 실패: {e} (폴더 쓰기 권한과 디스크 공간을 확인하세요. 이번 변경은 저장되지 않았습니다.)")
 
     # ---------- 기능 ----------
     def show_menu(self) -> None:
+        """메뉴를 출력한다."""
         print("=" * 40)
         print("  숲해설·환경교육 퀴즈 게임")
         print("=" * 40)
@@ -220,6 +238,7 @@ class QuizGame:
         print("=" * 40)
 
     def play(self) -> bool:
+        """저장된 퀴즈를 차례로 출제하고 점수를 계산한다. 입력이 중단되면 False."""
         if not self.quizzes:
             print("등록된 퀴즈가 없습니다.")
             return True
@@ -245,6 +264,7 @@ class QuizGame:
         return True
 
     def add_quiz(self) -> bool:
+        """문제, 선택지, 정답 번호를 입력받아 퀴즈를 추가하고 저장한다. 입력이 중단되면 False."""
         question = ""
         while not question:
             text = self.read_line("문제: ")
@@ -272,6 +292,7 @@ class QuizGame:
         return True
 
     def list_quizzes(self) -> None:
+        """등록된 퀴즈의 문제 목록을 출력한다."""
         if not self.quizzes:
             print("등록된 퀴즈가 없습니다.")
             return
@@ -280,6 +301,7 @@ class QuizGame:
             print(f"[{i}] {q.question}")
 
     def show_score(self) -> None:
+        """최고 점수를 출력한다. 아직 안 풀었으면 안내한다."""
         if self.best_score is None:
             print("아직 퀴즈를 풀지 않았습니다.")
         else:
@@ -318,6 +340,7 @@ class QuizGame:
         return True
 
     def run(self) -> None:
+        """메뉴 루프. 선택에 따라 기능을 호출하고, 종료하거나 입력이 중단되면 저장 후 끝낸다."""
         while True:
             self.show_menu()
             choice = self.read_int("선택: ", 1, 6)
@@ -336,5 +359,20 @@ class QuizGame:
                 self.show_score()
 
 
+def install_signal_handlers() -> None:
+    """SIGTERM(종료 요청)·SIGHUP(터미널 끊김)을 Ctrl+C와 같이 취급해 안전하게 저장하고 종료한다."""
+    def _stop(signum, frame):
+        raise KeyboardInterrupt
+
+    for name in ("SIGTERM", "SIGHUP"):      # SIGHUP은 윈도우에 없어서 있는 것만 등록
+        sig = getattr(signal, name, None)
+        if sig is not None:
+            try:
+                signal.signal(sig, _stop)
+            except (ValueError, OSError):
+                pass
+
+
 if __name__ == "__main__":
+    install_signal_handlers()
     QuizGame().run()
