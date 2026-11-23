@@ -6,6 +6,8 @@ import random
 from npu_core import judge, make_cross, make_x, mac, normalize_label, render
 
 STATE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "state.json")
+BACKUP_FILE = STATE_FILE + ".bak"   # 손상된 state.json을 지우지 않고 보관하는 곳
+NUM_CHOICES = 4                     # 선택지 개수 (바뀌면 이 값과 기본 데이터만 확인)
 
 
 class Quiz:
@@ -32,7 +34,7 @@ class Quiz:
     def from_dict(d: dict) -> "Quiz":
         choices = d["choices"]
         answer = d["answer"]
-        if len(choices) != 4 or answer not in (1, 2, 3, 4):
+        if len(choices) != NUM_CHOICES or answer not in range(1, NUM_CHOICES + 1):
             raise ValueError("잘못된 퀴즈 형식")
         return Quiz(str(d["question"]), [str(c) for c in choices], answer)
 
@@ -188,17 +190,25 @@ class QuizGame:
             self.quizzes = default_quizzes()
         except (json.JSONDecodeError, KeyError, TypeError, ValueError, OSError):
             print("데이터 파일이 손상되어 기본 퀴즈로 복구합니다.")
+            try:    # 복구하기 전에 손상된 파일을 .bak로 보관해 사용자 데이터를 잃지 않게 한다
+                os.replace(STATE_FILE, BACKUP_FILE)
+                print(f"(손상된 파일은 {os.path.basename(BACKUP_FILE)}로 보관했습니다.)")
+            except OSError:
+                print("(손상된 파일을 보관하지 못했습니다.)")
             self.quizzes = default_quizzes()
             self.best_score = None
             self.save()
 
     def save(self) -> None:
+        """임시 파일에 먼저 쓰고 성공하면 교체한다. 쓰는 도중 꺼져도 기존 state.json은 안전하다."""
         data = {"quizzes": [q.to_dict() for q in self.quizzes], "best_score": self.best_score}
+        tmp = STATE_FILE + ".tmp"
         try:
-            with open(STATE_FILE, "w", encoding="utf-8") as f:
+            with open(tmp, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
+            os.replace(tmp, STATE_FILE)
         except OSError as e:
-            print(f"저장 실패: {e}")
+            print(f"저장 실패: {e} (폴더 쓰기 권한과 디스크 공간을 확인하세요. 이번 변경은 저장되지 않았습니다.)")
 
     # ---------- 기능 ----------
     def show_menu(self) -> None:
@@ -218,7 +228,7 @@ class QuizGame:
         for i, quiz in enumerate(self.quizzes, 1):
             print("-" * 40)
             quiz.show(i)
-            choice = self.read_int("정답 번호: ", 1, 4)
+            choice = self.read_int("정답 번호: ", 1, NUM_CHOICES)
             if choice is None:
                 return False
             if quiz.is_correct(choice):
@@ -244,7 +254,7 @@ class QuizGame:
             if not question:
                 print("빈 입력입니다.")
         choices = []
-        for i in range(1, 5):
+        for i in range(1, NUM_CHOICES + 1):
             text = ""
             while not text:
                 text = self.read_line(f"선택지 {i}: ")
@@ -253,7 +263,7 @@ class QuizGame:
                 if not text:
                     print("빈 입력입니다.")
             choices.append(text)
-        answer = self.read_int("정답 번호(1-4): ", 1, 4)
+        answer = self.read_int(f"정답 번호(1-{NUM_CHOICES}): ", 1, NUM_CHOICES)
         if answer is None:
             return False
         self.quizzes.append(Quiz(question, choices, answer))
