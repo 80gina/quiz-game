@@ -588,3 +588,26 @@ $ git log --oneline -3                                               # 맨 위�
 📊 실행 화면 (마지막 8줄: `Ran 19 tests` / `OK`). 글자가 빨간 것은 `unittest`가 결과를 표준 오류로 출력해 PowerShell이 빨갛게 보여 주는 것이며 오류가 아닙니다.
 
 ![테스트 실행 결과](docs/screenshots/T1_unittest_ok.png)
+
+## 15. 🐳 Docker로 실행하기 (1번 미션 연결)
+1번 미션에서 배운 Docker로 이 게임을 이미지로 만들었습니다. 이미지는 **`quiz-game:1.0`** 이고 Docker Desktop의 **Images** 탭에 나타납니다.
+
+| 파일 | 역할 |
+|---|---|
+| `Dockerfile` | `python:3.12-slim`(Python 3.10 이상 요구 충족)에 `main.py`, `npu_core.py`, `data.json`을 담음 |
+| `.dockerignore` | `state.json`, `.git`, `docs/`처럼 이미지에 넣지 않을 것을 지정 |
+
+```powershell
+docker build -t quiz-game:1.0 .
+docker run --rm -it -v quizdata:/data quiz-game:1.0
+docker run --rm quiz-game:1.0 python test_quizgame.py
+```
+| 명령 | 뜻 |
+|---|---|
+| `docker build -t quiz-game:1.0 .` | 이미지를 만듭니다 (약 203 MB) |
+| `docker run --rm -it -v quizdata:/data quiz-game:1.0` | 게임 실행. `-it`는 키보드 입력용, `-v quizdata:/data`는 **볼륨**을 `/data`에 연결, `--rm`은 끝나면 컨테이너를 지움 |
+| `docker run --rm quiz-game:1.0 python test_quizgame.py` | 이미지 안에서 자동 테스트 19개 실행 |
+
+**데이터가 남는 이유:** 🔧 `state.json` 위치를 환경 변수 `QUIZ_STATE_FILE`로 바꿀 수 있게 했고(기본값은 `main.py` 옆 그대로), 이미지는 이 값을 `/data/state.json`으로 둡니다. `/data`에 볼륨(`quizdata`)을 연결하면 **컨테이너를 지워도 퀴즈와 최고 점수가 남습니다.** (1번 미션의 볼륨 실습과 같은 원리)
+
+📊 확인한 결과: 컨테이너에서 퀴즈를 추가하고 종료한 뒤 **새 컨테이너로 다시 실행해도 6개로 유지**되었고, 이미지 안의 테스트 19개가 모두 `OK`였습니다. 게임은 키보드 입력이 필요하므로 Docker Desktop의 **Run 버튼**보다 터미널에서 `-it`로 실행하는 것을 권장합니다.

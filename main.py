@@ -7,7 +7,9 @@ import time
 
 from npu_core import judge, make_cross, make_x, mac, normalize_label, render
 
-STATE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "state.json")
+# 기본은 main.py 옆의 state.json. 환경 변수 QUIZ_STATE_FILE로 위치를 바꿀 수 있다(Docker 볼륨용).
+STATE_FILE = os.environ.get("QUIZ_STATE_FILE") or os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "state.json")
 BACKUP_FILE = STATE_FILE + ".bak"   # 손상된 state.json을 지우지 않고 보관하는 곳
 SAVE_RETRIES = 3                    # 저장 실패 시 재시도 최대 횟수
 NUM_CHOICES = 4                     # 선택지 개수 (바뀌면 이 값과 기본 데이터만 확인)
