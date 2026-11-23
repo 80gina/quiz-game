@@ -516,3 +516,7 @@ $ git log --oneline -3                                               # 맨 위�
 | `SignalTests` | SIGTERM 핸들러가 Ctrl+C처럼 동작 | 1 |
 
 테스트는 임시 폴더의 파일로 실행하므로 내 `state.json`은 바뀌지 않습니다.
+
+📊 실행 화면 (마지막 8줄: `Ran 19 tests` / `OK`). 글자가 빨간 것은 `unittest`가 결과를 표준 오류로 출력해 PowerShell이 빨갛게 보여 주는 것이며 오류가 아닙니다.
+
+![테스트 실행 결과](docs/screenshots/T1_unittest_ok.png)
