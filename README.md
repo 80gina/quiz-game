@@ -611,3 +611,34 @@ docker run --rm quiz-game:1.0 python test_quizgame.py
 **데이터가 남는 이유:** 🔧 `state.json` 위치를 환경 변수 `QUIZ_STATE_FILE`로 바꿀 수 있게 했고(기본값은 `main.py` 옆 그대로), 이미지는 이 값을 `/data/state.json`으로 둡니다. `/data`에 볼륨(`quizdata`)을 연결하면 **컨테이너를 지워도 퀴즈와 최고 점수가 남습니다.** (1번 미션의 볼륨 실습과 같은 원리)
 
 📊 확인한 결과: 컨테이너에서 퀴즈를 추가하고 종료한 뒤 **새 컨테이너로 다시 실행해도 6개로 유지**되었고, 이미지 안의 테스트 19개가 모두 `OK`였습니다. 게임은 키보드 입력이 필요하므로 Docker Desktop의 **Run 버튼**보다 터미널에서 `-it`로 실행하는 것을 권장합니다.
+
+### 실행 증빙
+**📊 Docker Desktop의 Images 탭** — 이 프로젝트의 이미지(`quiz-game:1.0`, `mini-npu:1.0`, 각 약 202 MB)가 목록에 나타납니다. 이 화면은 Docker Desktop을 직접 캡처한 것입니다.
+
+![Docker Desktop Images 탭](docs/screenshots/D1_docker_images.png)
+
+**📊 터미널 실행 기록** — 아래는 실제로 명령을 실행해 나온 출력입니다. (시간 값은 컴퓨터마다 다름)
+
+```text
+$ docker images        (이 프로젝트 이미지만)
+REPOSITORY    TAG       SIZE
+mini-npu      1.0       203MB
+quiz-game     1.0       203MB
+
+$ docker run --rm quiz-game:1.0 python test_quizgame.py
+----------------------------------------------------------------------
+Ran 19 tests in 0.018s
+
+OK
+
+# 1) 컨테이너 A: 퀴즈 1개 추가 후 종료
+선택: 문제: 선택지 1: 선택지 2: 선택지 3: 선택지 4: 정답 번호(1-4): 퀴즈가 추가되었습니다.
+선택: 종료합니다.
+# 2) 컨테이너 A는 --rm으로 삭제됨. 새 컨테이너 B로 목록 확인
+선택: 등록된 퀴즈 (6개)
+[6] 컨테이너 문제
+# 3) 볼륨 안의 파일
+total 4
+-rw-r--r--    1 root     root          1553 Nov 23 11:27 state.json
+```
+세 번째 블록은 **컨테이너를 지워도 데이터가 남는지** 확인한 기록입니다. 컨테이너 A에서 퀴즈를 추가하고 종료(`--rm`으로 컨테이너 삭제)한 뒤, 같은 볼륨을 붙인 새 컨테이너 B에서 퀴즈가 6개로 그대로 보였습니다.
